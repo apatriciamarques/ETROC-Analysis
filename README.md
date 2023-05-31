@@ -1,6 +1,6 @@
-## ETROC Analysis
+# ETROC Analysis
 
-# Based on https://github.com/cbeiraod/ETROC-Analysis-Scripts.git
+Based on https://github.com/cbeiraod/ETROC-Analysis-Scripts.git
 
 1. **process\_etroc1\_single\_run\_txt.py (data injection)**
    - process\_etroc1\_data\_run\_txt (original data file)

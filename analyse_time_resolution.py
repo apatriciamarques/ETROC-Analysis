@@ -175,12 +175,23 @@ def calculate_time_resolution_with_time_filters(
             twc_timing_info['step_name'] = step
             twc_timing_info['twc_iteration'] = twc_iteration
 
+            #########################################################
+            #########################################################
+
+            # Patrícia: I passed sum to abs(sum)
+            # In Jongho's and Cristóvão's calculation
+            # There were errors in Middle Power 190 and 195
+
+            #########################################################
+            #########################################################
+
             # From Jongho:
             # Ex) b0 time resolution
             # a = b1_sigma^2 + b3_sigma^2 - b0_sigma^2
             # b = a * 0.5
             # b0_resolution = sqrt(b)
             # It seems this only works for 3 boards, so put a guard:
+
             if N == 3:
                 twc_timing_info['time_resolution'] = 0
                 twc_timing_info['time_resolution_unc'] = 0
@@ -202,9 +213,10 @@ def calculate_time_resolution_with_time_filters(
                     sum_unc_2 = (2*twc_timing_info.loc[board_list[board_idx]]['time_diff_width'])**2 * twc_timing_info.loc[board_list[board_idx]]['time_diff_width_unc']**2
                     sum_unc_2 += (2*twc_timing_info.loc[board_list[prev_board_idx]]['time_diff_width'])**2 * twc_timing_info.loc[board_list[prev_board_idx]]['time_diff_width_unc']**2
                     sum_unc_2 += (2*twc_timing_info.loc[board_list[next_board_idx]]['time_diff_width'])**2 * twc_timing_info.loc[board_list[next_board_idx]]['time_diff_width_unc']**2
-                    twc_timing_info.at[board_list[board_idx], 'time_resolution_unc'] = sqrt(1/(8*sum) * sum_unc_2)
+                    twc_timing_info.at[board_list[board_idx], 'time_resolution_unc'] = sqrt(1/(8*abs(sum)) * sum_unc_2)
 
-            # My own calculation
+            # CRISTÓVÃO'S CALCULATION
+
             twc_timing_info['time_resolution_new'] = 0
             twc_timing_info['time_resolution_new_unc'] = 0
             for board_id in board_list:
@@ -220,15 +232,19 @@ def calculate_time_resolution_with_time_filters(
                 sum *= float(N-1)/float(N**3 - 2*N**2)
                 sum_unc_2 = (2*float(N**2 - N - 1)*twc_timing_info.loc[board_id]['time_delta_width'])**2 * twc_timing_info.loc[board_id]['time_delta_width_unc']**2 + sum_unc_2
                 sum_unc_2 *= (float(N-1)/float(N**3 - 2*N**2))**2
-                twc_timing_info.at[board_id, 'time_resolution_new'] = sqrt(sum)
-                twc_timing_info.at[board_id, 'time_resolution_new_unc'] = sqrt(1/(4*sum) * sum_unc_2)
+                twc_timing_info.at[board_id, 'time_resolution_new'] = sqrt(abs(sum))
+                twc_timing_info.at[board_id, 'time_resolution_new_unc'] = sqrt(1/(4*abs(sum)) * sum_unc_2)
 
             twc_timing_info.reset_index(inplace=True)
+
+            #########################################################
+            #########################################################
 
             #if step == "Final":
             #    print(twc_timing_info)
 
             # Save the timing info of this pair (cuts, iteration)
+
             with sqlite3.connect(outDir/'data.sqlite') as output_twc_sqlite3:
                 twc_timing_info.to_sql('timing_info',
                                        output_twc_sqlite3,

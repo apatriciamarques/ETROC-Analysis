@@ -429,8 +429,8 @@ def apply_time_cuts(
             this_data_df = apply_event_filter(this_data_df, triggers_accepted_df, filter_name="time_filter")
             print("check1")
             triggers_accepted_df.reset_index().to_feather(base_path/base_name/'time_filter.fd')
-            build_plots(this_data_df, Shinji.run_name, Shinji.task_name, base_path/base_name/"plots", extra_title="Partial Cuts")
-            build_time_plots(this_data_df, base_path/base_name/"time_plots", Shinji.run_name, Shinji.task_name, extra_title="Partial Cuts", max_toa=max_toa, max_tot=max_tot, min_toa=min_toa, min_tot=min_tot)
+            #build_plots(this_data_df, Shinji.run_name, Shinji.task_name, base_path/base_name/"plots", extra_title="Partial Cuts")
+            #build_time_plots(this_data_df, base_path/base_name/"time_plots", Shinji.run_name, Shinji.task_name, extra_title="Partial Cuts", max_toa=max_toa, max_tot=max_tot, min_toa=min_toa, min_tot=min_tot)
             del this_data_df
 
     return triggers_accepted_df
@@ -455,11 +455,11 @@ def apply_time_cuts_task(
             #
             #
             #
-            if not (Shinji.path_directory/"time_cuts.csv").is_file():
+            if not (Shinji.path_directory/args.time_cuts_file).is_file():
                 script_logger.info("A time cuts file is not defined for run {}".format(Dexter.run_name))
             else:
                 with sqlite3.connect(Shinji.get_task_path("calculate_times_in_ns")/'data.sqlite') as input_sqlite3_connection:
-                    cuts_df = pandas.read_csv(Shinji.path_directory/"time_cuts.csv")
+                    cuts_df = pandas.read_csv(Shinji.path_directory/args.time_cuts_file)
 
                     if ("cut_type" not in cuts_df or
                         "cut_direction" not in cuts_df or
@@ -529,15 +529,15 @@ def script_main(
         )
 
         if Dexter.task_completed("apply_time_cuts") and make_plots:
-            plot_etroc1_task(
-                Dexter,
-                "plot_after_time_cuts",
-                Dexter.get_task_path("calculate_times_in_ns")/'data.sqlite',
-                filter_files={
-                    "event": Dexter.path_directory/"event_filter.fd",
-                    "time": Dexter.path_directory/"time_filter.fd",
-                }
-            )
+            # plot_etroc1_task(
+            #     Dexter,
+            #     "plot_after_time_cuts",
+            #     Dexter.get_task_path("calculate_times_in_ns")/'data.sqlite',
+            #     filter_files={
+            #         "event": Dexter.path_directory/"event_filter.fd",
+            #         "time": Dexter.path_directory/"time_filter.fd",
+            #     }
+            # )
             plot_times_in_ns_task(
                 Dexter,
                 script_logger=script_logger,
@@ -604,6 +604,14 @@ if __name__ == '__main__':
         help = 'Normally, when applying cuts if a certain board does not have data for a given event, the cut will remove that event. If set, these events will be kept instead.',
         action = 'store_true',
         dest = 'keep_events_without_data',
+    )
+    parser.add_argument(
+        '-time-cuts',
+        '--time-cuts',
+        help = 'Selected time cuts csv. Default: "time_cuts.csv"',
+        dest = 'time_cuts_file',
+        default = "time_cuts.csv",
+        type = str,
     )
     ###Plots
     #parser.add_argument(

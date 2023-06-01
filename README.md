@@ -27,6 +27,15 @@ Based on https://github.com/cbeiraod/ETROC-Analysis-Scripts.git
 6. analyse\_time\_resolution.py
    - analyse\_time\_resolution (Each Cut and Iteration: time walk corrections [histograms time diff and time delta] and plots [time resolution vs iteration or cut])
 
+New Scripts
+
+1. apply\_script\every\_run.py
+   - allows to select a script and perform it for all runs
+2. clustering.py
+   - performs a clustering algorithm in the original data
+3. analyse\_time\_resolution\_vs\_bias\_voltage.py
+   - creates a simple plot of final TR vs middle board voltage
+
 Note: analyse\_dac\_vs\_charge.py is only done after "charge injection".
 
 Here are the terminal instructions:

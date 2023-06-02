@@ -429,8 +429,8 @@ def apply_time_cuts(
             this_data_df = apply_event_filter(this_data_df, triggers_accepted_df, filter_name="time_filter")
             print("check1")
             triggers_accepted_df.reset_index().to_feather(base_path/base_name/'time_filter.fd')
-            #build_plots(this_data_df, Shinji.run_name, Shinji.task_name, base_path/base_name/"plots", extra_title="Partial Cuts")
-            #build_time_plots(this_data_df, base_path/base_name/"time_plots", Shinji.run_name, Shinji.task_name, extra_title="Partial Cuts", max_toa=max_toa, max_tot=max_tot, min_toa=min_toa, min_tot=min_tot)
+            build_plots(this_data_df, Shinji.run_name, Shinji.task_name, base_path/base_name/"plots", extra_title="Partial Cuts")
+            build_time_plots(this_data_df, base_path/base_name/"time_plots", Shinji.run_name, Shinji.task_name, extra_title="Partial Cuts", max_toa=max_toa, max_tot=max_tot, min_toa=min_toa, min_tot=min_tot)
             del this_data_df
 
     return triggers_accepted_df

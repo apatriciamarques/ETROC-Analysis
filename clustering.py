@@ -13,7 +13,7 @@ import logging
 import pandas
 import numpy
 import sqlite3
-import hdbscan
+#import hdbscan
 import os
 import re
 
@@ -28,6 +28,9 @@ from utilities import make_tot_vs_toa_plots
 from sklearn.cluster import KMeans
 from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import RobustScaler
+from sklearn.preprocessing import MinMaxScaler
+
 
 import scipy.odr
 import plotly.express as px
@@ -43,89 +46,328 @@ def clustering_task(
     method: str = "",
     ):
 
-    color_scales = ['greys', 'reds', 'blues','darkmint', 'greens','oranges','purples','purd']
+    scaling_order = "after_restructure" #before/after_restructure
+    scaling_method = "standart" #standart/robust/minmax
     
     if Matisse.task_completed("calculate_times_in_ns"):
         with Matisse.handle_task("clustering", drop_old_data=drop_old_data) as Miso:
             with sqlite3.connect(Miso.path_directory/"calculate_times_in_ns"/'data.sqlite') as input_sqlite3_connection, \
                  sqlite3.connect(Miso.task_path/'data.sqlite') as output_sqlite3_connection:
                 data_df = pandas.read_sql('SELECT * FROM etroc1_data', input_sqlite3_connection, index_col=None)
-                
-                # SCALE COLUMNS OF INTEREST
-                interest = data_df[['calibration_code', 'time_over_threshold', 'time_of_arrival']]
-                scaler = StandardScaler()
-                scaler.fit(interest)
-                data_df['calibration_code_scaled'], data_df['time_over_threshold_scaled'], data_df['time_of_arrival_scaled'] = scaler.transform(interest).T
-                interest_variables = ['calibration_code_scaled','time_over_threshold_scaled','time_of_arrival_scaled']
+                print("data_df"), print(data_df)
 
-                # OUTPUT: SCATTER WITH DIFFERENT COLORS
-                # ORGANIZE EVENTS PER BOARD
+                data_df['calibration_code'] = numpy.clip(data_df['calibration_code'],135,155)
 
-                # Cycle over boards
-                for board_id in sorted(data_df['data_board_id'].unique()):
-                    board_df = data_df[data_df['data_board_id'] == board_id]
+                # SCALE VARIABLES OF INTEREST CC, TOT, TOA
+                if scaling_order == "before_restructure":
+                    factor_cc = 1
+                    factor_tot = 1
+                    factor_toa = 1
+                    cc = f"calibration_code"
+                    tot = f"time_over_threshold"
+                    toa = f"time_of_arrival"
+                    cc_scaled = f"calibration_code_scaled"
+                    tot_scaled = f"time_over_threshold_scaled"
+                    toa_scaled = f"time_of_arrival_scaled"
+                    for var, var_scaled, factor in zip([cc, tot, toa], [cc_scaled, tot_scaled, toa_scaled], [factor_cc, factor_tot, factor_toa]):
+                        
+                        # STANDART SCALING
+                        if scaling_method == "standart":
+                            data_df[var_scaled] = factor * (data_df[var] - data_df[var].mean()) / numpy.std(data_df[var])
 
-                    # KMEANS clustering
+                        # ROBUST SCALING
+                        if scaling_method == "robust":
+                            scaler = RobustScaler().fit(data_df[var].to_numpy().reshape(-1, 1))
+                            data_df[var_scaled] = scaler.transform(data_df[var].to_numpy().reshape(-1, 1))
 
-                    if method == "KMEANS":
+                        # MINMAX SCALING
+                        if scaling_method == "minmax":
+                            scaler = MinMaxScaler().fit(data_df[var].to_numpy().reshape(-1, 1))
+                            data_df[var_scaled] = scaler.transform(data_df[var].to_numpy().reshape(-1, 1))
+               
+                    #########################
 
-                        k = 8  # Number of clusters
-                        n_init_value = 10  # Set the desired value for n_init
-                        max_iter = 10 # Max nr of iterations
-                        kmeans = KMeans(n_clusters=k, max_iter=max_iter, n_init=n_init_value)
-                        kmeans.fit(board_df[interest_variables]) 
-                        board_df['Cluster Label'] = kmeans.labels_
-                    
-                    # DBSCAN clustering
-
-                    if method == "DBSCAN":   
-
-                        min_cluster_size = 5  # Minimum number of samples in a cluster
-                        min_samples = 5  # Min number of samples in a neighborhood to form a core point
-                        #eps = 0.15 # Max distance between two samples to be considered in the same neighborhood
-                        #dbscan = DBSCAN(eps=eps, min_samples=min_samples)
-                        dbscan = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples)
-                        dbscan.fit(board_df[interest_variables])
-
-                        board_df['Cluster Label'] = dbscan.labels_
-
-                    # GENERAL
-
-                    unique_labels = sorted(set(board_df['Cluster Label']))
-                    print("Board ID:", board_id)
-                    print("Cluster Labels:", unique_labels)
-
-                    # ALL CLUSTERS PLOT
-                    
                     fig = go.Figure()
-                    # Iterate over clusters
-                    for cluster_label in unique_labels:
-                        cluster = board_df[board_df['Cluster Label'] == cluster_label]        
-                        fig.add_trace(go.Scatter(
-                            x=cluster['time_over_threshold'],
-                            y=cluster['time_of_arrival'],
+                    for board_id in [0,1,3]:
+                        fig.add_trace(go.Histogram(
+                            x=data_df.loc[data_df["data_board_id"] == board_id]["calibration_code_scaled"],
+                            name='Board {}'.format(board_id), # name used in legend and hover labels
+                            opacity=0.5,
+                            bingroup=1,
+                        ))
+                    fig.update_layout(
+                        barmode='overlay',
+                        title_text="Histogram of Calibration Code<br><sup>Run: </sup>",
+                        xaxis_title_text='Calibration Code', # xaxis label
+                        yaxis_title_text='Count', # yaxis label
+                    )
+                    fig.update_yaxes(type="log")
+                    fig.update_traces(
+                        histnorm="probability"
+                    )
+                    fig.update_layout(
+                        yaxis_title_text='Probability', # yaxis label
+                    )
+                    fig.write_html(
+                        Miso.task_path/'calibration_code_scaled_pdf.html',
+                        full_html = False,
+                        include_plotlyjs = 'cdn',
+                    )
+
+                    fig = go.Figure()
+                    for board_id in [0,1,3]:
+                        fig.add_trace(go.Histogram(
+                            x=data_df.loc[data_df["data_board_id"] == board_id]["time_of_arrival_scaled"],
+                            name='Board {}'.format(board_id), # name used in legend and hover labels
+                            opacity=0.5,
+                            bingroup=1,
+                        ))
+                    fig.update_layout(
+                        barmode='overlay',
+                        title_text="Histogram of Time of Arrival<br><sup>Run:</sup>",
+                        xaxis_title_text='Time of Arrival', # xaxis label
+                        yaxis_title_text='Count', # yaxis label
+                    )
+                    fig.update_traces(
+                        histnorm="probability"
+                    )
+                    fig.update_layout(
+                        yaxis_title_text='Probability', # yaxis label
+                    )
+                    fig.write_html(
+                        Miso.task_path/'time_of_arrival_scaled_pdf.html',
+                        full_html = False,
+                        include_plotlyjs = 'cdn',
+                    )
+
+                    fig = go.Figure()
+                    for board_id in sorted(data_df["data_board_id"].unique()):
+                        fig.add_trace(go.Histogram(
+                            x=data_df.loc[data_df["data_board_id"] == board_id]["time_over_threshold_scaled"],
+                            name='Board {}'.format(board_id), # name used in legend and hover labels
+                            opacity=0.5,
+                            bingroup=1,
+                        ))
+                    fig.update_layout(
+                        barmode='overlay',
+                        title_text="Histogram of Time over Threshold<br><sup>Run:</sup>",
+                        xaxis_title_text='Time over Threshold', # xaxis label
+                        yaxis_title_text='Count', # yaxis label
+                    )
+                    fig.update_traces(
+                        histnorm="probability"
+                    )
+                    fig.update_layout(
+                        yaxis_title_text='Probability', # yaxis label
+                    )
+                    fig.write_html(
+                        Miso.task_path/'time_over_threshold_scaled_pdf.html',
+                        full_html = False,
+                        include_plotlyjs = 'cdn',
+                    )
+
+                ######################
+                ######################
+                ######################
+                ######################
+
+                # RESTRUCTURE DATAFRAME
+                
+                pivot_df = data_df.pivot(index = 'event', columns = 'data_board_id',)
+                pivot_df.columns = [f"{col} {board_id}" for col, board_id
+                                    in zip(pivot_df.columns.get_level_values(0),
+                                           pivot_df.columns.get_level_values(1))] # new column names
+                pivot_df = pivot_df.reset_index()
+                print("pivot_df"), print(pivot_df)
+                
+                # SCALING AFTER RESTRUCTURING
+
+                if scaling_order == "after_restructure":
+                    factor_cc = 1
+                    factor_tot = 1
+                    factor_toa = 1
+                    for board_id in [0, 1, 3]:
+                        cc = f"calibration_code {board_id}"
+                        tot = f"time_over_threshold {board_id}"
+                        toa = f"time_of_arrival {board_id}"
+                        cc_scaled = f"calibration_code_scaled {board_id}"
+                        tot_scaled = f"time_over_threshold_scaled {board_id}"
+                        toa_scaled = f"time_of_arrival_scaled {board_id}"
+                        for var, var_scaled, factor in zip([cc, tot, toa], [cc_scaled, tot_scaled, toa_scaled], [factor_cc, factor_tot, factor_toa]):
+                                                    
+                            # STANDART SCALING
+                            if scaling_method == "standart":
+                                pivot_df[var_scaled] = factor * (pivot_df[var] - pivot_df[var].mean()) / numpy.std(pivot_df[var])
+
+                            # ROBUST SCALING
+                            if scaling_method == "robust":
+                                scaler = RobustScaler().fit(pivot_df[var].to_numpy().reshape(-1, 1))
+                                pivot_df[var_scaled] = scaler.transform(pivot_df[var].to_numpy().reshape(-1, 1))
+
+                            # MINMAX SCALING
+                            if scaling_method == "minmax":
+                                scaler = MinMaxScaler().fit(pivot_df[var].to_numpy().reshape(-1, 1))
+                                pivot_df[var_scaled] = scaler.transform(pivot_df[var].to_numpy().reshape(-1, 1))
+                            
+            
+                # APPLY CLUSTERING ALGORITHM 
+
+                interest_variables = ['calibration_code_scaled 0','time_over_threshold_scaled 0','time_of_arrival_scaled 0',
+                                      'calibration_code_scaled 1','time_over_threshold_scaled 1','time_of_arrival_scaled 1',
+                                      'calibration_code_scaled 3','time_over_threshold_scaled 3','time_of_arrival_scaled 3']
+                print("interest_variables"), print(pivot_df[interest_variables])
+
+                if method == "KMEANS":
+
+                    k = 8 # Number of clusters
+                    max_iter = 500 # Max nr of iterations
+                    n_init_value = 15  # Set the desired value for n_init
+                    # 10: 2/3 clusters along the S
+                    kmeans = KMeans(n_clusters=k, max_iter=max_iter, n_init=n_init_value)
+                    #kmeans.fit(pivot_df[interest_variables]) 
+                    kmeans.fit(pivot_df[interest_variables])
+                    '''
+                    pivot_df[['time_over_threshold_scaled 0','time_of_arrival_scaled 0',
+                                    'time_over_threshold_scaled 1','time_of_arrival_scaled 1',
+                                    'time_over_threshold_scaled 3','time_of_arrival_scaled 3']])
+                                    '''
+                    pivot_df['Cluster Label'] = kmeans.labels_
+                
+                # DBSCAN clustering
+
+                if method == "DBSCAN":   
+
+                    min_cluster_size = 5  # Minimum number of samples in a cluster
+                    min_samples = 5  # Min number of samples in a neighborhood to form a core point
+                    #eps = 0.15 # Max distance between two samples to be considered in the same neighborhood
+                    #dbscan = DBSCAN(eps=eps, min_samples=min_samples)
+                    dbscan = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples)
+                    dbscan.fit(pivot_df[interest_variables])
+                    pivot_df['Cluster Label'] = dbscan.labels_
+
+                print("pivot_df with cluster labels"), print(pivot_df)
+
+                # GIVE ORIGINAL DATA_DF THE CORRESPONDENT CLUSTER LABELS
+                data_df = data_df.merge(pivot_df[['event', 'Cluster Label']], on='event', how='left')
+                print("data_df merged"), print(data_df)
+
+                # COLOR MAP
+
+                colormap = {0 : 'blue',
+                            1 : 'green',
+                            2 : 'red',
+                            3 : 'cyan',
+                            4 : 'magenta',
+                            5 : 'yellow',
+                            6 : 'black',
+                            7 : 'khaki',
+                   }
+
+                # ITERATE OVER THE CLUSTERS TO GET THE SAME COLOR
+                
+                fig = {}  
+                fig_main = {}
+                fig_general = {}
+                for cluster_label in sorted(set(pivot_df['Cluster Label'])):
+                    cluster = pivot_df[pivot_df['Cluster Label'] == cluster_label]
+                    cluster_color = colormap[cluster_label]
+                    
+                    # BUILD FIGURE
+                    for board_id in [0, 1, 3]:
+                        cc = f"calibration_code {board_id}"
+                        tot = f"time_over_threshold {board_id}"
+                        toa = f"time_of_arrival {board_id}"
+                        board_df = pivot_df[[cc,tot,toa,"Cluster Label"]]
+                        #print("board_id"),print(board_id), print("board_df"),print(board_df)
+
+                        # ALL CLUSTERS PLOT
+
+                        if cluster_label == 0:
+                            fig[board_id] = go.Figure()
+                            print(f"board_id = {board_id}, type = all")
+                        
+                        fig[board_id].add_trace(go.Scatter(
+                            x=cluster[tot],
+                            y=cluster[toa],
                             mode='markers',
                             name=f'Cluster {cluster_label}',
                             marker=dict(
-                                size=6,
-                                color=cluster.index,  # Differentiate points within a cluster using index
-                                colorscale=color_scales[cluster_label]  # Color scale for points within a cluster
+                                size=4,
+                                color=cluster_color,  # Differentiate points within a cluster using index
                             )
                         ))
 
-                    # After the cycle over all clusters
-                    fig.update_layout(
-                        title=f"Scatter Plot of TOT vs TOA (Board {board_id})",
+                        fig[board_id].update_layout(
+                            title=f"Scatter Plot of TOT vs TOA (Board {board_id}) {args.out_directory}",
+                            xaxis_title="Time over Threshold",
+                            yaxis_title="Time of Arrival"
+                        )
+
+                        fig[board_id].write_html(
+                            Miso.task_path / f'Board{board_id}_TOT_vs_TOA_{args.method}_Cluster_All.html',
+                            full_html=False,
+                            include_plotlyjs='cdn'
+                        )
+
+                        # MAIN CLUSTER PLOT
+
+                        # if cluster_label == 4:
+                        #     fig_main[board_id] = go.Figure()
+                        #     fig_main[board_id].add_trace(go.Scatter(
+                        #         x=cluster[tot],
+                        #         y=cluster[toa],
+                        #         mode='markers',
+                        #         name=f'Cluster {cluster_label}',
+                        #         marker=dict(
+                        #             size=4,
+                        #             color=cluster_color,  # Differentiate points within a cluster using index
+                        #         )
+                        #     ))
+
+                        #     fig_main[board_id].update_layout(
+                        #         title=f"Scatter Plot of TOT vs TOA (Board {board_id}) {args.out_directory}",
+                        #         xaxis_title="Time over Threshold",
+                        #         yaxis_title="Time of Arrival"
+                        #     )
+
+                        #     fig_main[board_id].write_html(
+                        #         Miso.task_path / f'Board{board_id}_TOT_vs_TOA_{args.method}_Cluster_Main.html',
+                        #         full_html=False,
+                        #         include_plotlyjs='cdn'
+                        #     )
+
+                    cc = f"calibration_code"
+                    tot = f"time_over_threshold"
+                    toa = f"time_of_arrival"
+
+                    # ALL CLUSTERS PLOT GENERAL
+
+                    if cluster_label == 0:
+                        fig_general = go.Figure()
+                    
+                    fig_general.add_trace(go.Scatter(
+                        x=data_df[tot],
+                        y=data_df[toa],
+                        mode='markers',
+                        name=f'Cluster {cluster_label}',
+                        marker=dict(
+                            size=4,
+                            color=cluster_color,  # Differentiate points within a cluster using index
+                        )
+                    ))
+
+                    fig_general.update_layout(
+                        title=f"Scatter Plot of TOT vs TOA {args.out_directory}",
                         xaxis_title="Time over Threshold",
                         yaxis_title="Time of Arrival"
                     )
 
-                    fig.write_html(
-                        Miso.task_path / f'Board{board_id}_TOT_vs_TOA_{args.method}_Cluster_All.html',
+                    fig_general.write_html(
+                        Miso.task_path / f'General_TOT_vs_TOA_{args.method}_Cluster_All.html',
                         full_html=False,
                         include_plotlyjs='cdn'
                     )
-
+                    
 def script_main(
     output_directory:Path,
     drop_old_data:bool=True,
@@ -142,11 +384,6 @@ def script_main(
             script_logger=logging.Logger,
             method = args.method,
             )
-        
-        # if Oberon.task_completed("clustering") and make_plots:
-        #     plot_etroc1_task(Oberon, "plot_after_clustering", Oberon.path_directory/"data"/"data.sqlite")
-        # else:
-        #     print("Task clustering was not completed")
 
 
 if __name__ == '__main__':

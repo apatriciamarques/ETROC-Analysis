@@ -266,19 +266,16 @@ def clustering_task(
                 # ITERATE OVER THE CLUSTERS TO GET THE SAME COLOR
                 
                 fig = {}  
-                fig_main = {}
-                fig_general = {}
-                for cluster_label in sorted(set(pivot_df['Cluster Label'])):
-                    cluster = pivot_df[pivot_df['Cluster Label'] == cluster_label]
+                fig_all = go.Figure()
+                cc = "calibration_code"
+                tot = "time_over_threshold"
+                toa = "time_of_arrival"
+                for cluster_label in sorted(set(data_df['Cluster Label'])):
+                    cluster = data_df[data_df['Cluster Label'] == cluster_label]
                     cluster_color = colormap[cluster_label]
-                    
+
                     # BUILD FIGURE
-                    for board_id in [0, 1, 3]:
-                        cc = f"calibration_code {board_id}"
-                        tot = f"time_over_threshold {board_id}"
-                        toa = f"time_of_arrival {board_id}"
-                        board_df = pivot_df[[cc,tot,toa,"Cluster Label"]]
-                        #print("board_id"),print(board_id), print("board_df"),print(board_df)
+                    for board_id in sorted(data_df["data_board_id"].unique()):                    
 
                         # ALL CLUSTERS PLOT
 
@@ -287,8 +284,8 @@ def clustering_task(
                             print(f"board_id = {board_id}, type = all")
                         
                         fig[board_id].add_trace(go.Scatter(
-                            x=cluster[tot],
-                            y=cluster[toa],
+                            x=cluster.loc[cluster['data_board_id'].astype(int) == int(board_id), tot],
+                            y=cluster.loc[cluster['data_board_id'].astype(int) == int(board_id), toa],
                             mode='markers',
                             name=f'Cluster {cluster_label}',
                             marker=dict(
@@ -309,45 +306,9 @@ def clustering_task(
                             include_plotlyjs='cdn'
                         )
 
-                        # MAIN CLUSTER PLOT
-
-                        # if cluster_label == 4:
-                        #     fig_main[board_id] = go.Figure()
-                        #     fig_main[board_id].add_trace(go.Scatter(
-                        #         x=cluster[tot],
-                        #         y=cluster[toa],
-                        #         mode='markers',
-                        #         name=f'Cluster {cluster_label}',
-                        #         marker=dict(
-                        #             size=4,
-                        #             color=cluster_color,  # Differentiate points within a cluster using index
-                        #         )
-                        #     ))
-
-                        #     fig_main[board_id].update_layout(
-                        #         title=f"Scatter Plot of TOT vs TOA (Board {board_id}) {args.out_directory}",
-                        #         xaxis_title="Time over Threshold",
-                        #         yaxis_title="Time of Arrival"
-                        #     )
-
-                        #     fig_main[board_id].write_html(
-                        #         Miso.task_path / f'Board{board_id}_TOT_vs_TOA_{args.method}_Cluster_Main.html',
-                        #         full_html=False,
-                        #         include_plotlyjs='cdn'
-                        #     )
-
-                    cc = f"calibration_code"
-                    tot = f"time_over_threshold"
-                    toa = f"time_of_arrival"
-
-                    # ALL CLUSTERS PLOT GENERAL
-
-                    if cluster_label == 0:
-                        fig_general = go.Figure()
-                    
-                    fig_general.add_trace(go.Scatter(
-                        x=data_df[tot],
-                        y=data_df[toa],
+                    fig_all.add_trace(go.Scatter(
+                        x=cluster[tot],
+                        y=cluster[toa],
                         mode='markers',
                         name=f'Cluster {cluster_label}',
                         marker=dict(
@@ -356,14 +317,14 @@ def clustering_task(
                         )
                     ))
 
-                    fig_general.update_layout(
+                    fig_all.update_layout(
                         title=f"Scatter Plot of TOT vs TOA {args.out_directory}",
                         xaxis_title="Time over Threshold",
                         yaxis_title="Time of Arrival"
                     )
 
-                    fig_general.write_html(
-                        Miso.task_path / f'General_TOT_vs_TOA_{args.method}_Cluster_All.html',
+                    fig_all.write_html(
+                        Miso.task_path / f'TOT_vs_TOA_{args.method}_Cluster_All.html',
                         full_html=False,
                         include_plotlyjs='cdn'
                     )

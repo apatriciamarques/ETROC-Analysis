@@ -46,12 +46,9 @@ def clustering_task(
     method: str = "",
     ):
 
-    scaling_order = "after_restructure" #before/after_restructure
-    scaling_method = "standart" #standart/robust/minmax
-    
-    if Matisse.task_completed("calculate_times_in_ns"):
+    if Matisse.task_completed("process_etroc1_data_run_txt"):
         with Matisse.handle_task("clustering", drop_old_data=drop_old_data) as Miso:
-            with sqlite3.connect(Miso.path_directory/"calculate_times_in_ns"/'data.sqlite') as input_sqlite3_connection, \
+            with sqlite3.connect(Miso.path_directory/"data"/'data.sqlite') as input_sqlite3_connection, \
                  sqlite3.connect(Miso.task_path/'data.sqlite') as output_sqlite3_connection:
                 data_df = pandas.read_sql('SELECT * FROM etroc1_data', input_sqlite3_connection, index_col=None)
                 print("data_df"), print(data_df)
@@ -59,7 +56,7 @@ def clustering_task(
                 data_df['calibration_code'] = numpy.clip(data_df['calibration_code'],135,155)
 
                 # SCALE VARIABLES OF INTEREST CC, TOT, TOA
-                if scaling_order == "before_restructure":
+                if args.sorder == "before_restructure":
                     factor_cc = 1
                     factor_tot = 1
                     factor_toa = 1
@@ -71,17 +68,17 @@ def clustering_task(
                     toa_scaled = f"time_of_arrival_scaled"
                     for var, var_scaled, factor in zip([cc, tot, toa], [cc_scaled, tot_scaled, toa_scaled], [factor_cc, factor_tot, factor_toa]):
                         
-                        # STANDART SCALING
-                        if scaling_method == "standart":
+                        # standard SCALING
+                        if args.smethod == "standard":
                             data_df[var_scaled] = factor * (data_df[var] - data_df[var].mean()) / numpy.std(data_df[var])
 
                         # ROBUST SCALING
-                        if scaling_method == "robust":
+                        if args.smethod == "robust":
                             scaler = RobustScaler().fit(data_df[var].to_numpy().reshape(-1, 1))
                             data_df[var_scaled] = scaler.transform(data_df[var].to_numpy().reshape(-1, 1))
 
                         # MINMAX SCALING
-                        if scaling_method == "minmax":
+                        if args.smethod == "minmax":
                             scaler = MinMaxScaler().fit(data_df[var].to_numpy().reshape(-1, 1))
                             data_df[var_scaled] = scaler.transform(data_df[var].to_numpy().reshape(-1, 1))
                
@@ -182,7 +179,7 @@ def clustering_task(
                 
                 # SCALING AFTER RESTRUCTURING
 
-                if scaling_order == "after_restructure":
+                if args.sorder == "after_restructure":
                     factor_cc = 1
                     factor_tot = 1
                     factor_toa = 1
@@ -195,17 +192,17 @@ def clustering_task(
                         toa_scaled = f"time_of_arrival_scaled {board_id}"
                         for var, var_scaled, factor in zip([cc, tot, toa], [cc_scaled, tot_scaled, toa_scaled], [factor_cc, factor_tot, factor_toa]):
                                                     
-                            # STANDART SCALING
-                            if scaling_method == "standart":
+                            # standard SCALING
+                            if args.smethod == "standard":
                                 pivot_df[var_scaled] = factor * (pivot_df[var] - pivot_df[var].mean()) / numpy.std(pivot_df[var])
 
                             # ROBUST SCALING
-                            if scaling_method == "robust":
+                            if args.smethod == "robust":
                                 scaler = RobustScaler().fit(pivot_df[var].to_numpy().reshape(-1, 1))
                                 pivot_df[var_scaled] = scaler.transform(pivot_df[var].to_numpy().reshape(-1, 1))
 
                             # MINMAX SCALING
-                            if scaling_method == "minmax":
+                            if args.smethod == "minmax":
                                 scaler = MinMaxScaler().fit(pivot_df[var].to_numpy().reshape(-1, 1))
                                 pivot_df[var_scaled] = scaler.transform(pivot_df[var].to_numpy().reshape(-1, 1))
                             
@@ -221,7 +218,7 @@ def clustering_task(
 
                     k = 8 # Number of clusters
                     max_iter = 500 # Max nr of iterations
-                    n_init_value = 15  # Set the desired value for n_init
+                    n_init_value = 50 # Set the desired value for n_init
                     # 10: 2/3 clusters along the S
                     kmeans = KMeans(n_clusters=k, max_iter=max_iter, n_init=n_init_value)
                     #kmeans.fit(pivot_df[interest_variables]) 
@@ -271,6 +268,7 @@ def clustering_task(
                 tot = "time_over_threshold"
                 toa = "time_of_arrival"
                 for cluster_label in sorted(set(data_df['Cluster Label'])):
+
                     cluster = data_df[data_df['Cluster Label'] == cluster_label]
                     cluster_color = colormap[cluster_label]
 
@@ -301,7 +299,7 @@ def clustering_task(
                         )
 
                         fig[board_id].write_html(
-                            Miso.task_path / f'Board{board_id}_TOT_vs_TOA_{args.method}_Cluster_All.html',
+                            Miso.task_path / f'Board{board_id}_TOT_vs_TOA_{args.method}_{args.sorder}_{args.smethod}_Cluster_All.html',
                             full_html=False,
                             include_plotlyjs='cdn'
                         )
@@ -324,11 +322,16 @@ def clustering_task(
                     )
 
                     fig_all.write_html(
-                        Miso.task_path / f'TOT_vs_TOA_{args.method}_Cluster_All.html',
+                        Miso.task_path / f'TOT_vs_TOA_{args.method}_{args.sorder}_{args.smethod}_Cluster_All.html',
                         full_html=False,
                         include_plotlyjs='cdn'
                     )
-                    
+
+                data_df.to_sql('etroc1_data',
+                               output_sqlite3_connection,
+                               index=False,
+                               if_exists='replace')
+  
 def script_main(
     output_directory:Path,
     drop_old_data:bool=True,
@@ -380,6 +383,22 @@ if __name__ == '__main__':
         help = 'Clustering method: "KMEANS" or "DBSCAN". Default: "KMEANS"',
         default = "KMEANS",
         dest = 'method',
+        type = str,
+    )
+    parser.add_argument(
+        '-scaling-order',
+        '--scaling-order',
+        help = 'Scaling before of after restructuring: after_restructure/before_restructure. Default: "before_restructure"',
+        default = "before_restructure",
+        dest = 'sorder',
+        type = str,
+    )
+    parser.add_argument(
+        '-scaling-method',
+        '--scaling-method',
+        help = 'Scaling method for K Means: standard/minmax/robust. Default: "robust"',
+        default = "robust",
+        dest = 'smethod',
         type = str,
     )
 

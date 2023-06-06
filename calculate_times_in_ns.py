@@ -39,17 +39,46 @@ def calculate_times_in_ns_task(
     drop_old_data:bool=True,
     fbin_choice:str="mean",
     ):
-    if Fermat.task_completed("apply_event_cuts"):
+
+    # Patrícia added
+    if args.cluster == "NA":
+        completed_task = "apply_event_cuts"
+    else:
+        completed_task = "clustering"
+
+    if Fermat.task_completed(completed_task):
         with Fermat.handle_task("calculate_times_in_ns", drop_old_data=drop_old_data) as Einstein:
-            with sqlite3.connect(Einstein.path_directory/"data"/'data.sqlite') as input_sqlite3_connection, \
+            
+            # Patrícia added
+            if args.cluster == "NA":
+                completed_task = "apply_event_cuts"
+                connect_task = Einstein.path_directory/"data"
+            else:
+                completed_task = "clustering"
+                connect_task = Einstein.get_task_path("clustering")
+
+            with sqlite3.connect(connect_task/'data.sqlite') as input_sqlite3_connection, \
                  sqlite3.connect(Einstein.task_path/'data.sqlite') as output_sqlite3_connection:
+                print("path directory"), print(connect_task)
                 data_df = pandas.read_sql('SELECT * FROM etroc1_data', input_sqlite3_connection, index_col=None)
 
-                filter_df = pandas.read_feather(Einstein.path_directory/"event_filter.fd")
-                filter_df.set_index("event", inplace=True)
+                # Patrícia added
+                if args.cluster == "NA":
 
-                from cut_etroc1_single_run import apply_event_filter
-                data_df = apply_event_filter(data_df, filter_df)
+                    print("I'm filtering the data with event cuts")
+
+                    filter_df = pandas.read_feather(Einstein.path_directory/"event_filter.fd")
+                    filter_df.set_index("event", inplace=True)
+
+                    from cut_etroc1_single_run import apply_event_filter
+                    data_df = apply_event_filter(data_df, filter_df)
+
+                # Patrícia added
+                if args.cluster != "NA":
+
+                    print(f"I'm filtering the data choosing cluster number {args.cluster}")
+                    data_df['accepted'] = data_df['Cluster Label'] == int(args.cluster)
+                
                 accepted_data_df = data_df.loc[data_df['accepted']==True]
                 board_grouped_accepted_data_df = accepted_data_df.groupby(['data_board_id'])
 
@@ -83,8 +112,10 @@ def calculate_times_in_ns_task(
                                      #index=False,
                                      if_exists='replace')
 
-                data_df.drop(labels=['accepted', 'event_filter'], axis=1, inplace=True)
-
+                if args.cluster == "NA":
+                    data_df.drop(labels=['accepted', 'event_filter'], axis=1, inplace=True)
+                if args.cluster != "NA":
+                    data_df.drop(labels=['accepted'], axis=1, inplace=True)
                 data_df.to_sql('etroc1_data',
                                output_sqlite3_connection,
                                index=False,
@@ -97,7 +128,13 @@ def script_main(
     max_tot:float=0,
     ):
 
-    script_logger = logging.getLogger('apply_event_cuts')
+    # Patrícia added
+    if args.cluster == "NA":
+        completed_task = "apply_event_cuts"
+        script_logger = logging.getLogger('apply_event_cuts')
+    else:
+        completed_task = "clustering"
+        script_logger = logging.getLogger('apply_clustering')
 
     if max_toa == 0:
         max_toa = None
@@ -107,12 +144,12 @@ def script_main(
     with RM.RunManager(output_directory.resolve()) as Fermat:
         Fermat.create_run(raise_error=False)
 
-        if not Fermat.task_completed("apply_event_cuts"):
-            raise RuntimeError("You can only run this script after applying event cuts")
+        if not Fermat.task_completed(completed_task):
+            raise RuntimeError("You can only run this script after applying event cuts (--cluster NA)\n or after calculating time in ns (--cluster nr)")
 
         calculate_times_in_ns_task(Fermat, script_logger=script_logger)
 
-        if make_plots:
+        if make_plots and args.cluster == "NA":
             plot_times_in_ns_task(
                 Fermat,
                 script_logger=script_logger,
@@ -136,6 +173,8 @@ def script_main(
                 min_toa=0,
                 min_tot=0,
             )
+
+            print(f"I'm not printing plot times in ns (yet) for a chosen cluster ({args.cluster})")
 
 if __name__ == '__main__':
     import argparse
@@ -181,6 +220,15 @@ if __name__ == '__main__':
         default = 0,
         dest = 'max_tot',
         type = float,
+    )
+    parser.add_argument(
+        '-c',
+        '--cluster',
+        metavar = 'int',
+        help = 'Number of the cluster to be selected. Default: "NA"',
+        default = "NA",
+        dest = 'cluster',
+        type = str,
     )
 
     args = parser.parse_args()

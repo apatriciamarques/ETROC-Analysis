@@ -249,27 +249,47 @@ def calculate_time_walk_correction_task(
     iterations:int=1,
     poly_order:int=2,
     ):
-    if Homer.task_completed("apply_time_cuts"):
+    # Patrícia added
+    if args.cluster == "NA":
+        completed_task = "apply_time_cuts"
+    else:
+        completed_task = "calculate_times_in_ns"
+
+    if Homer.task_completed(completed_task):
         with Homer.handle_task("calculate_time_walk_correction", drop_old_data=drop_old_data) as Carl:
             with sqlite3.connect(Carl.get_task_path("calculate_times_in_ns")/'data.sqlite') as input_sqlite3_connection, \
                  sqlite3.connect(Carl.task_path/'data.sqlite') as output_sqlite3_connection:
+                print("path directory"), print(Carl.get_task_path("calculate_times_in_ns"))
                 original_df = pandas.read_sql('SELECT * FROM etroc1_data', input_sqlite3_connection, index_col=None)
                 board_list = sorted(original_df['data_board_id'].unique())
 
-                data_df = filter_dataframe(
-                    df=original_df,
-                    filter_files={
-                        "event": Carl.path_directory/"event_filter.fd",
-                        "time": Carl.path_directory/"time_filter.fd",
-                    },
-                    script_logger=script_logger,
-                )
+                # Patrícia added conditions
+                if args.cluster == "NA":
+
+                    print("I'm filtering the data with event and time cuts")
+
+                    data_df = filter_dataframe(
+                        df=original_df,
+                        filter_files={
+                            "event": Carl.path_directory/"event_filter.fd",
+                            "time": Carl.path_directory/"time_filter.fd",
+                        },
+                        script_logger=script_logger,
+                    )
+
+                if args.cluster != "NA":
+                    print(f"I'm filtering the data choosing cluster number {args.cluster}")
+                    data_df = original_df.copy()
+                    data_df['accepted'] = data_df['Cluster Label'] == int(args.cluster)
 
                 pivot_df = data_df.pivot(
                     index = 'event',
                     columns = 'data_board_id',
                     values = list(set(data_df.columns) - {'data_board_id', 'event'}),
                 )
+                
+                print("data_df"),print(data_df)
+                print("pivot_df"),print(pivot_df)
 
                 data_df["data_board_id_cat"] = data_df["data_board_id"].astype(str)
                 original_df.set_index(["event", "data_board_id"], inplace=True)
@@ -319,8 +339,14 @@ def script_main(
     with RM.RunManager(output_directory.resolve()) as Homer:
         Homer.create_run(raise_error=False)
 
-        if not Homer.task_completed("apply_time_cuts"):
-            raise RuntimeError("You can only run this script after applying  time cuts")
+        # Patrícia added
+        if args.cluster == "NA":
+            completed_task = "apply_time_cuts"
+        else:
+            completed_task = "calculate_times_in_ns"
+
+        if not Homer.task_completed(completed_task):
+            raise RuntimeError("You can only run this script after applying  time cuts (--cluster NA)\n or after calculating time in ns (--cluster nr)")
 
         calculate_time_walk_correction_task(Homer, script_logger=script_logger, iterations=iterations, poly_order=poly_order)
 
@@ -368,6 +394,15 @@ if __name__ == '__main__':
         default = 2,
         dest = 'order',
         type = int,
+    )
+    parser.add_argument(
+        '-c',
+        '--cluster',
+        metavar = 'int',
+        help = 'Number of the cluster to be selected. Default: "NA"',
+        default = "NA",
+        dest = 'cluster',
+        type = str,
     )
 
     args = parser.parse_args()

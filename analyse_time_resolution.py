@@ -89,7 +89,7 @@ def calculate_time_resolution_with_time_filters(
     if N <= 2:
         script_logger.error("This script requires the data to be taken with at least 3 boards")
         return pandas.DataFrame()
-
+    
     largest_idx = None
     for step in time_filters:
         if step == 'Final':
@@ -108,14 +108,20 @@ def calculate_time_resolution_with_time_filters(
                 largest_idx = 0
             step_idx = largest_idx + 1
 
-        data_df = filter_dataframe(
-            df=original_df,
-            filter_files={
-                "event": Jorge.path_directory/"event_filter.fd",
-                "time": time_filters[step],
-            },
-            script_logger=script_logger,
-        )
+        if args.cluster == "NA":
+            data_df = filter_dataframe(
+                df=original_df,
+                filter_files={
+                    "event": Jorge.path_directory/"event_filter.fd",
+                    "time": time_filters.get(step),
+                },
+                script_logger=script_logger,
+            )
+
+        if args.cluster != "NA":
+            print("clustering case")
+            data_df = original_df.copy()
+            data_df['accepted'] = data_df['Cluster Label'] == int(args.cluster)
 
         pivot_df = data_df.pivot(
             index = 'event',
@@ -235,6 +241,12 @@ def calculate_time_resolution_with_time_filters(
                 twc_timing_info.at[board_id, 'time_resolution_new'] = sqrt(abs(sum))
                 twc_timing_info.at[board_id, 'time_resolution_new_unc'] = sqrt(1/(4*abs(sum)) * sum_unc_2)
 
+                if args.cluster != "NA" and step == "Final":
+                    print(f"clustering {args.cluster}, twc_iteration {twc_iteration}, step {step}, step_idx {step_idx}, board_id {board_id}, TR new {twc_timing_info.at[board_id, 'time_resolution_new']*1000} ps, TR new unc {twc_timing_info.at[board_id, 'time_resolution_new_unc']*1000} ps")
+
+                if args.cluster == "NA":
+                    print(f"clustering {args.cluster}, step {step}, step_idx {step_idx}, board_id {board_id}, TR new {twc_timing_info.at[board_id, 'time_resolution_new']*1000} ps")
+
             twc_timing_info.reset_index(inplace=True)
 
             #########################################################
@@ -247,11 +259,14 @@ def calculate_time_resolution_with_time_filters(
 
             with sqlite3.connect(outDir/'data.sqlite') as output_twc_sqlite3:
                 twc_timing_info.to_sql('timing_info',
-                                       output_twc_sqlite3,
-                                       index=False,
-                                       if_exists='replace')
+                                    output_twc_sqlite3,
+                                    index=False,
+                                    if_exists='replace')
 
             timing_info = pandas.concat([timing_info, twc_timing_info], ignore_index=True)
+
+        if args.cluster != "NA" and step == "Final":
+            break
 
     #print(timing_info)
     return timing_info
@@ -367,7 +382,7 @@ def script_main(
     output_directory:Path,
     make_plots:bool=True,
     ):
-
+    
     script_logger = logging.getLogger('analyse_time_resolution')
 
     with RM.RunManager(output_directory.resolve()) as Linus:
@@ -403,6 +418,15 @@ if __name__ == '__main__':
         help = 'Path to the output directory for the run data. Default: ./out',
         default = "./out",
         dest = 'out_directory',
+        type = str,
+    )
+    parser.add_argument(
+        '-c',
+        '--cluster',
+        metavar = 'int',
+        help = 'Number of the cluster to be selected. Default: "NA"',
+        default = "NA",
+        dest = 'cluster',
         type = str,
     )
 

@@ -6,9 +6,9 @@ There's the option to perform data selection either with cutting or clustering.
 
 We can choose to process each data file individually or all at once with a chosen method.
 
-# Individually with cutting
+# Individual Processing
 
-### Process each data file individually
+### With Cutting
 
 1. **process\_etroc1\_single\_run\_txt.py (data injection)**
    - process\_etroc1\_data\_run\_txt (original data file)
@@ -35,7 +35,7 @@ We can choose to process each data file individually or all at once with a chose
 6. analyse\_time\_resolution.py
    - analyse\_time\_resolution (Each Cut and Iteration: time walk corrections [histograms time diff and time delta] and plots [time resolution vs iteration or cut])
 
-# Individually with clustering
+### With Clustering
 
 1. **process\_etroc1\_single\_run\_txt.py (data injection)**
 
@@ -45,13 +45,17 @@ We can choose to process each data file individually or all at once with a chose
 
 4. **calculate\_time\_walk\_correction.py (data processing)**
 
-5. analyse\_time\_resolution.py
+5. **analyse\_time\_resolution.py**
 
-# Process all runs with a chosen method
+# General Processing
 
-1. all.py
+### Treat all runs with the same method
 
-2. analyse\_time\_resolution\_vs\_bias\_voltage.py
+1. **all.py**
+
+### Compare time resolution results
+
+1. **analyse\_time\_resolution\_vs\_bias\_voltage.py**
 
 # Terminal instructions
 
@@ -66,7 +70,7 @@ python {script}.py --out-directory {etroc/run} --file {input_data} --time-cuts {
         
 ```
 
-### Examples:
+### Examples
 
 ```bash
 # Activate virtual environment

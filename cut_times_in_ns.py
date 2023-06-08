@@ -621,6 +621,7 @@ if __name__ == '__main__':
         '--time-cuts',
         help = 'Selected time cuts csv. Default: "time_cuts.csv"',
         dest = 'time_cuts_file',
+        required = True,
         default = "time_cuts.csv",
         type = str,
     )
@@ -653,7 +654,7 @@ if __name__ == '__main__':
         '--file',
         metavar = 'path',
         help = 'Path to the txt file with the measurements.',
-        required = True,
+        #required = True,
         dest = 'file',
         type = str,
     )

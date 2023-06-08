@@ -474,7 +474,7 @@ if __name__ == '__main__':
         '--file',
         metavar = 'path',
         help = 'Path to the txt file with the measurements.',
-        required = True,
+        #required = True,
         dest = 'file',
         type = str,
     )

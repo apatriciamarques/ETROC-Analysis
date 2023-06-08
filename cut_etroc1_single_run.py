@@ -158,17 +158,10 @@ def apply_event_cuts_task(
 ):
     if AdaLovelace.task_completed("process_etroc1_data_run") or AdaLovelace.task_completed("process_etroc1_data_run_txt"):
         with AdaLovelace.handle_task("apply_event_cuts", drop_old_data=drop_old_data) as Miso:
-                        #
-            #
-            #
-            #
-            #ATTENTION: cuts.csv
-            #
-            #
-            #
             
             if not (Miso.path_directory/"cuts.csv").is_file():
                 script_logger.info("A cuts file is not defined for run {}".format(AdaLovelace.run_name))
+                print("Attention: a cuts file is not defined.")
             else:
                 with sqlite3.connect(Miso.path_directory/"data"/'data.sqlite') as input_sqlite3_connection:
                     cuts_df = pandas.read_csv(Miso.path_directory/"cuts.csv")
@@ -189,6 +182,7 @@ def apply_event_cuts_task(
                     script_logger.info('Saving run event filter metadata...')
                     filtered_events_df.reset_index().to_feather(Miso.task_path/'event_filter.fd')
                     filtered_events_df.reset_index().to_feather(Miso.path_directory/'event_filter.fd')
+                    print(f"I've saved 'event_filter.fd' to {Miso.task_path} and {Miso.path_directory}")
     else:
         print("Task process_etroc1_data_run not completed")
 
@@ -291,7 +285,7 @@ if __name__ == '__main__':
         '--file',
         metavar = 'path',
         help = 'Path to the txt file with the measurements.',
-        required = True,
+        #required = True,
         dest = 'file',
         type = str,
     )
@@ -349,3 +343,4 @@ if __name__ == '__main__':
             logging.basicConfig(level=0)
 
     script_main(Path(args.out_directory), keep_events_without_data=args.keep_events_without_data)
+    

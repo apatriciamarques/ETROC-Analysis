@@ -37,7 +37,7 @@ def calculate_times_in_ns_task(
     Fermat: RM.RunManager,
     script_logger: logging.Logger,
     drop_old_data:bool=True,
-    fbin_choice:str="mean",
+    fbin_choice:str="median",#"mean",
     ):
 
     # Patrícia added
@@ -275,7 +275,7 @@ if __name__ == '__main__':
         '--file',
         metavar = 'path',
         help = 'Path to the txt file with the measurements.',
-        required = True,
+        #required = True,
         dest = 'file',
         type = str,
     )

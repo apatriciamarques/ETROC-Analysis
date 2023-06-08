@@ -88,7 +88,9 @@ def plot_time_resolution_vs_bias_voltage_task(
             if args.time_cuts_file != "time_cuts.csv":
                 var_interest = args.time_cuts_file
             elif args.cluster != "NA":
-                var_interest = args.cluster
+                var_interest = f"cluster{args.cluster}"
+            else:
+                var_interest = "NA"
 
             data_df = get_voltage(
                 Matisse,
@@ -111,7 +113,7 @@ def plot_time_resolution_vs_bias_voltage_task(
                     x_var=data_df['voltage'],
                     y_var=data_df['time_resolution_new'],
                     y_error=data_df['time_resolution_new_unc'],
-                    file_name="time_resolution_vs_bias_voltage",
+                    file_name=f"time_resolution_vs_bias_voltage_{var_interest}cutsall",
                     color_var="data_board_id",
                     line_var = 'I2C Configuration',
                     symbol_var = 'I2C Configuration',
@@ -211,7 +213,7 @@ if __name__ == '__main__':
         '--file',
         metavar = 'path',
         help = 'Path to the txt file with the measurements.',
-        required = True,
+        #required = True,
         dest = 'file',
         type = str,
     )

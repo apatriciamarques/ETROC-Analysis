@@ -85,6 +85,11 @@ def plot_time_resolution_vs_bias_voltage_task(
     with Oberon.handle_task("plot_time_resolution_vs_bias_voltage") as Matisse:
         with sqlite3.connect(Matisse.task_path/'time_resolution.sqlite') as output_sqlite3_connection:
 
+            if args.time_cuts_file != "time_cuts.csv":
+                var_interest = args.time_cuts_file
+            elif args.cluster != "NA":
+                var_interest = args.cluster
+
             data_df = get_voltage(
                 Matisse,
                 script_logger=script_logger,
@@ -102,7 +107,7 @@ def plot_time_resolution_vs_bias_voltage_task(
                     task_name=Matisse.task_name,
                     base_path=Matisse.task_path,
                     plot_title="Time Resolution vs Bias Voltage",
-                    subtitle="Board 1 used as trigger and others' applied voltage constant at 230V",
+                    subtitle=f"Board 1 used as trigger and others' applied voltage constant at 230V ({var_interest})",
                     x_var=data_df['voltage'],
                     y_var=data_df['time_resolution_new'],
                     y_error=data_df['time_resolution_new_unc'],
@@ -167,6 +172,74 @@ if __name__ == '__main__':
         default = "ETROC1",
         dest = 'etroc',
         type = str,
+    )
+    parser.add_argument(
+        '-m',
+        '--method',
+        help = 'Clustering method: "KMEANS" or "DBSCAN". Default: "KMEANS"',
+        default = "KMEANS",
+        dest = 'method',
+        type = str,
+    )
+    
+    parser.add_argument(
+        '-scaling-order',
+        '--scaling-order',
+        help = 'Scaling before of after restructuring: after_restructure/before_restructure. Default: "before_restructure"',
+        default = "before_restructure",
+        dest = 'sorder',
+        type = str,
+    )
+    parser.add_argument(
+        '-scaling-method',
+        '--scaling-method',
+        help = 'Scaling method for K Means: standard/minmax/robust. Default: "robust"',
+        default = "robust",
+        dest = 'smethod',
+        type = str,
+    )
+    parser.add_argument(
+        '-c',
+        '--cluster',
+        metavar = 'int',
+        help = 'Number of the cluster to be selected. Default: "NA"',
+        default = "NA",
+        dest = 'cluster',
+        type = str,
+    )
+    parser.add_argument(
+        '--file',
+        metavar = 'path',
+        help = 'Path to the txt file with the measurements.',
+        required = True,
+        dest = 'file',
+        type = str,
+    )
+    parser.add_argument(
+        '-time-cuts',
+        '--time-cuts',
+        help = 'Selected time cuts csv. Default: "time_cuts.csv"',
+        dest = 'time_cuts_file',
+        default = "time_cuts.csv",
+        type = str,
+    )
+    parser.add_argument(
+        '-a',
+        '--max_toa',
+        metavar = 'int',
+        help = 'Maximum value of the time of arrival (in ns) for plotting. Default: 0 (automatically calculated)',
+        default = 0,
+        dest = 'max_toa',
+        type = float,
+    )
+    parser.add_argument(
+        '-t',
+        '--max_tot',
+        metavar = 'int',
+        help = 'Maximum value of the time over threshold (in ns) for plotting. Default: 0 (automatically calculated)',
+        default = 0,
+        dest = 'max_tot',
+        type = float,
     )
 
     args = parser.parse_args()

@@ -145,7 +145,7 @@ def calculate_time_resolution_with_time_filters(
             )
 
             data_df.reset_index(inplace=True)
-
+            '''
             make_histogram_plot(
                 data_df=data_df,
                 run_name=Jorge.run_name,
@@ -157,7 +157,7 @@ def calculate_time_resolution_with_time_filters(
                 file_name="time_delta",
                 extra_title="ΔTi = (∑ tj)/(N-1) - ti; j ≠ i"
             )
-
+            
             make_histogram_plot(
                 data_df=data_df,
                 run_name=Jorge.run_name,
@@ -169,7 +169,7 @@ def calculate_time_resolution_with_time_filters(
                 file_name="time_diff",
                 extra_title="Δtij = ti - tj; j = i + 1"
             )
-
+            '''
             grouped_data_df = data_df.query('accepted==True').groupby(["data_board_id"])
 
             twc_timing_info = pandas.DataFrame()
@@ -289,7 +289,7 @@ def analyse_time_resolution_task(
                 time_filters = {
                     'Final': Jorge.path_directory/"time_filter.fd",
                 }
-                if Jorge.task_completed("apply_time_cuts"):
+                if Jorge.task_completed("apply_time_cuts") and (Jorge.get_task_path("apply_time_cuts") / 'CutflowPlots').exists():
                     for dir in (Jorge.get_task_path("apply_time_cuts")/'CutflowPlots').iterdir():
                         time_filters[dir.name] = dir/"time_filter.fd"
 
@@ -421,6 +421,22 @@ if __name__ == '__main__':
         type = str,
     )
     parser.add_argument(
+        '-etroc',
+        '--etroc-number',
+        help = 'Path to the ETROC correspondent to the data. Default: ETROC1',
+        default = "ETROC1",
+        dest = 'etroc',
+        type = str,
+    )
+    parser.add_argument(
+        '-time-cuts',
+        '--time-cuts',
+        help = 'Selected time cuts csv. Default: "time_cuts.csv"',
+        dest = 'time_cuts_file',
+        default = "time_cuts.csv",
+        type = str,
+    )
+    parser.add_argument(
         '-c',
         '--cluster',
         metavar = 'int',
@@ -428,6 +444,57 @@ if __name__ == '__main__':
         default = "NA",
         dest = 'cluster',
         type = str,
+    )
+    parser.add_argument(
+        '-m',
+        '--method',
+        help = 'Clustering method: "KMEANS" or "DBSCAN". Default: "KMEANS"',
+        default = "KMEANS",
+        dest = 'method',
+        type = str,
+    )
+    
+    parser.add_argument(
+        '-scaling-order',
+        '--scaling-order',
+        help = 'Scaling before of after restructuring: after_restructure/before_restructure. Default: "before_restructure"',
+        default = "before_restructure",
+        dest = 'sorder',
+        type = str,
+    )
+    parser.add_argument(
+        '-scaling-method',
+        '--scaling-method',
+        help = 'Scaling method for K Means: standard/minmax/robust. Default: "robust"',
+        default = "robust",
+        dest = 'smethod',
+        type = str,
+    )
+    parser.add_argument(
+        '--file',
+        metavar = 'path',
+        help = 'Path to the txt file with the measurements.',
+        required = True,
+        dest = 'file',
+        type = str,
+    )
+    parser.add_argument(
+        '-a',
+        '--max_toa',
+        metavar = 'int',
+        help = 'Maximum value of the time of arrival (in ns) for plotting. Default: 0 (automatically calculated)',
+        default = 0,
+        dest = 'max_toa',
+        type = float,
+    )
+    parser.add_argument(
+        '-t',
+        '--max_tot',
+        metavar = 'int',
+        help = 'Maximum value of the time over threshold (in ns) for plotting. Default: 0 (automatically calculated)',
+        default = 0,
+        dest = 'max_tot',
+        type = float,
     )
 
     args = parser.parse_args()

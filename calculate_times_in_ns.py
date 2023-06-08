@@ -174,7 +174,7 @@ def script_main(
                 min_tot=0,
             )
 
-            print(f"I'm not printing plot times in ns (yet) for a chosen cluster ({args.cluster})")
+            print(f"I'm printing plot times in ns for cluster ({args.cluster})")
 
 if __name__ == '__main__':
     import argparse
@@ -222,12 +222,61 @@ if __name__ == '__main__':
         type = float,
     )
     parser.add_argument(
+        '-etroc',
+        '--etroc-number',
+        help = 'Path to the ETROC correspondent to the data. Default: ETROC1',
+        default = "ETROC1",
+        dest = 'etroc',
+        type = str,
+    )
+    parser.add_argument(
+        '-time-cuts',
+        '--time-cuts',
+        help = 'Selected time cuts csv. Default: "time_cuts.csv"',
+        dest = 'time_cuts_file',
+        default = "time_cuts.csv",
+        type = str,
+    )
+    parser.add_argument(
         '-c',
         '--cluster',
         metavar = 'int',
         help = 'Number of the cluster to be selected. Default: "NA"',
         default = "NA",
         dest = 'cluster',
+        type = str,
+    )
+    parser.add_argument(
+        '-m',
+        '--method',
+        help = 'Clustering method: "KMEANS" or "DBSCAN". Default: "KMEANS"',
+        default = "KMEANS",
+        dest = 'method',
+        type = str,
+    )
+    
+    parser.add_argument(
+        '-scaling-order',
+        '--scaling-order',
+        help = 'Scaling before of after restructuring: after_restructure/before_restructure. Default: "before_restructure"',
+        default = "before_restructure",
+        dest = 'sorder',
+        type = str,
+    )
+    parser.add_argument(
+        '-scaling-method',
+        '--scaling-method',
+        help = 'Scaling method for K Means: standard/minmax/robust. Default: "robust"',
+        default = "robust",
+        dest = 'smethod',
+        type = str,
+    )
+    parser.add_argument(
+        '--file',
+        metavar = 'path',
+        help = 'Path to the txt file with the measurements.',
+        required = True,
+        dest = 'file',
         type = str,
     )
 

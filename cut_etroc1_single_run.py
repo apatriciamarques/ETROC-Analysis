@@ -145,7 +145,7 @@ def apply_event_cuts(
             base_name = str(idx) + "-" + cut_row["output"]
             (base_path/base_name).mkdir(exist_ok=True)
             this_data_df = apply_event_filter(data_df, triggers_accepted_df)
-            build_plots(this_data_df, Johnny.run_name, Johnny.task_name, base_path/base_name, extra_title="Partial Cuts")
+            #build_plots(this_data_df, Johnny.run_name, Johnny.task_name, base_path/base_name, extra_title="Partial Cuts")
             del this_data_df
 
     return triggers_accepted_df
@@ -252,6 +252,82 @@ if __name__ == '__main__':
         help = 'Normally, when applying cuts if a certain board does not have data for a given event, the cut will remove that event. If set, these events will be kept instead.',
         action = 'store_true',
         dest = 'keep_events_without_data',
+    )
+    parser.add_argument(
+        '-m',
+        '--method',
+        help = 'Clustering method: "KMEANS" or "DBSCAN". Default: "KMEANS"',
+        default = "KMEANS",
+        dest = 'method',
+        type = str,
+    )
+    
+    parser.add_argument(
+        '-scaling-order',
+        '--scaling-order',
+        help = 'Scaling before of after restructuring: after_restructure/before_restructure. Default: "before_restructure"',
+        default = "before_restructure",
+        dest = 'sorder',
+        type = str,
+    )
+    parser.add_argument(
+        '-scaling-method',
+        '--scaling-method',
+        help = 'Scaling method for K Means: standard/minmax/robust. Default: "robust"',
+        default = "robust",
+        dest = 'smethod',
+        type = str,
+    )
+    parser.add_argument(
+        '-c',
+        '--cluster',
+        metavar = 'int',
+        help = 'Number of the cluster to be selected. Default: "NA"',
+        default = "NA",
+        dest = 'cluster',
+        type = str,
+    )
+    parser.add_argument(
+        '--file',
+        metavar = 'path',
+        help = 'Path to the txt file with the measurements.',
+        required = True,
+        dest = 'file',
+        type = str,
+    )
+    parser.add_argument(
+        '-a',
+        '--max_toa',
+        metavar = 'int',
+        help = 'Maximum value of the time of arrival (in ns) for plotting. Default: 0 (automatically calculated)',
+        default = 0,
+        dest = 'max_toa',
+        type = float,
+    )
+    parser.add_argument(
+        '-t',
+        '--max_tot',
+        metavar = 'int',
+        help = 'Maximum value of the time over threshold (in ns) for plotting. Default: 0 (automatically calculated)',
+        default = 0,
+        dest = 'max_tot',
+        type = float,
+    )
+    parser.add_argument(
+        '-etroc',
+        '--etroc-number',
+        help = 'Path to the ETROC correspondent to the data. Default: ETROC1',
+        default = "ETROC1",
+        dest = 'etroc',
+        type = str,
+    )
+    parser.add_argument(
+        '-time-cuts',
+        '--time-cuts',
+        help = 'Selected time cuts csv. Default: "time_cuts.csv"',
+        dest = 'time_cuts_file',
+        default = "time_cuts.csv",
+        type = str,
     )
 
     args = parser.parse_args()

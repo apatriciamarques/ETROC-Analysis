@@ -399,6 +399,7 @@ def apply_time_cuts(
     triggers_accepted_df = pandas.DataFrame({'accepted': True}, index=pivot_data_df.index)
     for idx, cut_row in time_cuts_df.iterrows():
         if cut_row['cut_type'][0] == "#":  # If first character is #, then we skip the row
+            print("cut_row['cut_type'][0] == #")
             continue
         triggers_accepted_df = df_apply_time_cut_governor(
             triggers_accepted_df,
@@ -416,6 +417,7 @@ def apply_time_cuts(
         )
 
         if "output" in cut_row and isinstance(cut_row["output"], str):
+            print("I'm inside the output condition")
             script_logger.info("Making partial cut plots after cut {}:\n{}".format(idx, cut_row))
             base_name = str(idx) + "-" + cut_row["output"]
             (base_path/base_name).mkdir(exist_ok=True)
@@ -427,12 +429,14 @@ def apply_time_cuts(
                 event_accepted_df.set_index("event", inplace=True)
                 this_data_df = apply_event_filter(this_data_df, event_accepted_df)
             this_data_df = apply_event_filter(this_data_df, triggers_accepted_df, filter_name="time_filter")
-            print("check1")
+            print("inside output condition")
             triggers_accepted_df.reset_index().to_feather(base_path/base_name/'time_filter.fd')
+            ##### APPLY_TIME_CUTS PLOTS
             #build_plots(this_data_df, Shinji.run_name, Shinji.task_name, base_path/base_name/"plots", extra_title="Partial Cuts")
             #build_time_plots(this_data_df, base_path/base_name/"time_plots", Shinji.run_name, Shinji.task_name, extra_title="Partial Cuts", max_toa=max_toa, max_tot=max_tot, min_toa=min_toa, min_tot=min_tot)
             del this_data_df
 
+    print("I'll now return triggers_accepted_df")
     return triggers_accepted_df
 
 def apply_time_cuts_task(
@@ -460,6 +464,7 @@ def apply_time_cuts_task(
             else:
                 with sqlite3.connect(Shinji.get_task_path("calculate_times_in_ns")/'data.sqlite') as input_sqlite3_connection:
                     cuts_df = pandas.read_csv(Shinji.path_directory/args.time_cuts_file)
+                    print(f"I'm using {args.time_cuts_file} to cut data from run {args.out_directory}")
 
                     if ("cut_type" not in cuts_df or
                         "cut_direction" not in cuts_df or
@@ -495,6 +500,8 @@ def apply_time_cuts_task(
                     filtered_events_df.to_feather(Shinji.task_path/'time_filter.fd')
                     filtered_events_df.to_feather(Shinji.path_directory/'time_filter.fd')
 
+                    print(f"\nI've used {args.time_cuts_file} to cut data from run {args.out_directory}")
+
 def script_main(
     output_directory:Path,
     drop_old_data:bool=True,
@@ -529,15 +536,18 @@ def script_main(
         )
 
         if Dexter.task_completed("apply_time_cuts") and make_plots:
-            # plot_etroc1_task(
-            #     Dexter,
-            #     "plot_after_time_cuts",
-            #     Dexter.get_task_path("calculate_times_in_ns")/'data.sqlite',
-            #     filter_files={
-            #         "event": Dexter.path_directory/"event_filter.fd",
-            #         "time": Dexter.path_directory/"time_filter.fd",
-            #     }
-            # )
+            ####Patrícia plot_after_time_cuts
+            '''
+            plot_etroc1_task(
+                Dexter,
+                "plot_after_time_cuts",
+                Dexter.get_task_path("calculate_times_in_ns")/'data.sqlite',
+                filter_files={
+                    "event": Dexter.path_directory/"event_filter.fd",
+                    "time": Dexter.path_directory/"time_filter.fd",
+                }
+            )
+
             plot_times_in_ns_task(
                 Dexter,
                 script_logger=script_logger,
@@ -552,6 +562,7 @@ def script_main(
                 min_toa=0,
                 min_tot=0,
             )
+            '''
 
 if __name__ == '__main__':
     import argparse
@@ -611,6 +622,56 @@ if __name__ == '__main__':
         help = 'Selected time cuts csv. Default: "time_cuts.csv"',
         dest = 'time_cuts_file',
         default = "time_cuts.csv",
+        type = str,
+    )
+    parser.add_argument(
+        '-m',
+        '--method',
+        help = 'Clustering method: "KMEANS" or "DBSCAN". Default: "KMEANS"',
+        default = "KMEANS",
+        dest = 'method',
+        type = str,
+    )
+    
+    parser.add_argument(
+        '-scaling-order',
+        '--scaling-order',
+        help = 'Scaling before of after restructuring: after_restructure/before_restructure. Default: "before_restructure"',
+        default = "before_restructure",
+        dest = 'sorder',
+        type = str,
+    )
+    parser.add_argument(
+        '-scaling-method',
+        '--scaling-method',
+        help = 'Scaling method for K Means: standard/minmax/robust. Default: "robust"',
+        default = "robust",
+        dest = 'smethod',
+        type = str,
+    )
+    parser.add_argument(
+        '--file',
+        metavar = 'path',
+        help = 'Path to the txt file with the measurements.',
+        required = True,
+        dest = 'file',
+        type = str,
+    )
+    parser.add_argument(
+        '-etroc',
+        '--etroc-number',
+        help = 'Path to the ETROC correspondent to the data. Default: ETROC1',
+        default = "ETROC1",
+        dest = 'etroc',
+        type = str,
+    )
+    parser.add_argument(
+        '-c',
+        '--cluster',
+        metavar = 'int',
+        help = 'Number of the cluster to be selected. Default: "NA"',
+        default = "NA",
+        dest = 'cluster',
         type = str,
     )
     ###Plots

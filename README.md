@@ -53,7 +53,7 @@ We can choose to process each data file individually or all at once with a chose
 
 2. analyse\_time\_resolution\_vs\_bias\_voltage.py
 
-# Here are the terminal instructions:
+# Terminal instructions
 
 ```bash
 # Activate virtual environment
@@ -66,7 +66,7 @@ python {script}.py --out-directory {etroc/run} --file {input_data} --time-cuts {
         
 ```
 
-Examples:
+### Examples:
 
 ```bash
 # Activate virtual environment

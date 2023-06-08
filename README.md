@@ -1,7 +1,9 @@
 # ETROC Analysis
 
 Based on https://github.com/cbeiraod/ETROC-Analysis-Scripts.
+
 There's the option to perform data selection either with cutting or clustering.
+
 We can choose to process each data file individually or all at once with a chosen method.
 
 # this

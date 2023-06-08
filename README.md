@@ -6,7 +6,7 @@ There's the option to perform data selection either with cutting or clustering.
 
 We can choose to process each data file individually or all at once with a chosen method.
 
-# this
+# Individually with cutting
 
 ### Process each data file individually
 
@@ -35,18 +35,25 @@ We can choose to process each data file individually or all at once with a chose
 6. analyse\_time\_resolution.py
    - analyse\_time\_resolution (Each Cut and Iteration: time walk corrections [histograms time diff and time delta] and plots [time resolution vs iteration or cut])
 
-A) Process each data file individually
+# Individually with clustering
 
-New Scripts
+1. **process\_etroc1\_single\_run\_txt.py (data injection)**
 
-1. apply\_script\every\_run.py
-   - allows to select a script and perform it for all runs
-2. clustering.py
-   - performs a clustering algorithm in the original data
-3. analyse\_time\_resolution\_vs\_bias\_voltage.py
-   - creates a simple plot of final TR vs middle board voltage
+2. **clustering.py**
 
-Here are the terminal instructions:
+3. **calculate\_times\_in\_ns.py (data transformation)**
+
+4. **calculate\_time\_walk\_correction.py (data processing)**
+
+5. analyse\_time\_resolution.py
+
+# Process all runs with a chosen method
+
+1. all.py
+
+2. analyse\_time\_resolution\_vs\_bias\_voltage.py
+
+# Here are the terminal instructions:
 
 ```bash
 # Activate virtual environment

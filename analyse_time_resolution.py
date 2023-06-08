@@ -418,6 +418,7 @@ if __name__ == '__main__':
         help = 'Path to the output directory for the run data. Default: ./out',
         default = "./out",
         dest = 'out_directory',
+        required = True,
         type = str,
     )
     parser.add_argument(

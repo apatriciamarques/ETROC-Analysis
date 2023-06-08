@@ -216,7 +216,7 @@ def clustering_task(
 
                 if method == "KMEANS":
 
-                    k = 8 # Number of clusters
+                    k = 18 # Number of clusters
                     max_iter = 500 # Max nr of iterations
                     n_init_value = 50 # Set the desired value for n_init
                     # 10: 2/3 clusters along the S
@@ -258,6 +258,17 @@ def clustering_task(
                             5 : 'yellow',
                             6 : 'black',
                             7 : 'khaki',
+                            8 : 'slateblue',
+                            9 : 'blueviolet',
+                            10 : 'olivedrab',
+                            11 : 'coral',
+                            12 : 'sienna',
+                            13 : 'deeppink',
+                            14 : 'firebrick',
+                            15 : 'gold',
+                            16 : 'silver',
+                            17 : 'chocolate',
+                            18 : 'moccasin',
                    }
 
                 # ITERATE OVER THE CLUSTERS TO GET THE SAME COLOR
@@ -342,7 +353,7 @@ def script_main(
 
     with RM.RunManager(output_directory.resolve()) as Oberon:
         Oberon.create_run(raise_error=False)
-
+        print("I'm going to enter clustering task")
         clustering_task(
             Oberon,
             script_logger=logging.Logger,
@@ -400,6 +411,7 @@ if __name__ == '__main__':
         help = 'Path to the output directory for the run data. Default: ./out',
         default = "./out",
         dest = 'out_directory',
+        required = True,
         type = str,
     )
     parser.add_argument(
@@ -439,7 +451,7 @@ if __name__ == '__main__':
         '--file',
         metavar = 'path',
         help = 'Path to the txt file with the measurements.',
-        required = True,
+        #required = True,
         dest = 'file',
         type = str,
     )

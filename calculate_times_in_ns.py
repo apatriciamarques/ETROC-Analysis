@@ -37,7 +37,7 @@ def calculate_times_in_ns_task(
     Fermat: RM.RunManager,
     script_logger: logging.Logger,
     drop_old_data:bool=True,
-    fbin_choice:str="median",#"mean",
+    fbin_choice:str="mean",#"mean",
     ):
 
     # Patrícia added
@@ -131,10 +131,10 @@ def script_main(
     # Patrícia added
     if args.cluster == "NA":
         completed_task = "apply_event_cuts"
-        script_logger = logging.getLogger('apply_event_cuts')
     else:
         completed_task = "clustering"
-        script_logger = logging.getLogger('apply_clustering')
+    
+    script_logger = logging.getLogger(completed_task)
 
     if max_toa == 0:
         max_toa = None
@@ -145,7 +145,7 @@ def script_main(
         Fermat.create_run(raise_error=False)
 
         if not Fermat.task_completed(completed_task):
-            raise RuntimeError("You can only run this script after applying event cuts (--cluster NA)\n or after calculating time in ns (--cluster nr)")
+            raise RuntimeError(f"You can only run this script after {completed_task}")
 
         calculate_times_in_ns_task(Fermat, script_logger=script_logger)
 
@@ -201,6 +201,7 @@ if __name__ == '__main__':
         help = 'Path to the output directory for the run data. Default: ./out',
         default = "./out",
         dest = 'out_directory',
+        required = True,
         type = str,
     )
     parser.add_argument(

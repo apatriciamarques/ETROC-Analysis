@@ -427,14 +427,6 @@ if __name__ == '__main__':
         type = str,
     )
     parser.add_argument(
-        '--file',
-        metavar = 'path',
-        help = 'Path to the txt file with the measurements.',
-        required = True,
-        dest = 'file',
-        type = str,
-    )
-    parser.add_argument(
         '-a',
         '--max_toa',
         metavar = 'int',

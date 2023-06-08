@@ -8,43 +8,32 @@ from pathlib import Path # Pathlib documentation, very useful if unfamiliar:
                          #   https://docs.python.org/3/library/pathlib.html
 
 import lip_pps_run_manager as RM
-
 import logging
 import pandas
-import numpy
-import sqlite3
 import os
-import re
-
 import subprocess
 import multiprocessing
 
-import scipy.odr
-import plotly.express as px
-import plotly.graph_objects as go
-
 # cd OneDrive - Universidade de Lisboa\PIC\ETROC\Scripts
-# python all.py --script cut_times_in_ns.py --time-cuts time_cuts-hv190.csv --cluster {args.cluster}
+# python all.py --script cut_etroc1_single_run.py --time-cuts time_cuts-hv190.csv --cluster {args.cluster}
 
 def run_analysis(run, index, args):
 
     print(f"Run: {run}")
 
     commands_cuts = [
-        f'python process_etroc1_single_run_txt.py --out-directory {args.etroc}/{run} --file {args.file} --time-cuts {args.time_cuts_file} --etroc-number {args.etroc} --method {args.method} --scaling-order {args.sorder} --scaling-method {args.smethod} --log-level {args.log_level} --max_toa {args.max_toa} --max_tot {args.max_tot} --cluster {args.cluster}',
+        #f'python process_etroc1_single_run_txt.py --out-directory {args.etroc}/{run} --file {args.file} --time-cuts {args.time_cuts_file} --etroc-number {args.etroc} --method {args.method} --scaling-order {args.sorder} --scaling-method {args.smethod} --log-level {args.log_level} --max_toa {args.max_toa} --max_tot {args.max_tot} --cluster {args.cluster}',
         f'python cut_etroc1_single_run.py --out-directory {args.etroc}/{run} --file {args.file} --time-cuts {args.time_cuts_file} --etroc-number {args.etroc} --method {args.method} --scaling-order {args.sorder} --scaling-method {args.smethod} --log-level {args.log_level} --max_toa {args.max_toa} --max_tot {args.max_tot} --cluster {args.cluster}',
         f'python calculate_times_in_ns.py --out-directory {args.etroc}/{run} --file {args.file} --time-cuts {args.time_cuts_file} --etroc-number {args.etroc} --method {args.method} --scaling-order {args.sorder} --scaling-method {args.smethod} --log-level {args.log_level} --max_toa {args.max_toa} --max_tot {args.max_tot} --cluster {args.cluster}',
         f'python cut_times_in_ns.py --out-directory {args.etroc}/{run} --file {args.file} --time-cuts {args.time_cuts_file} --etroc-number {args.etroc} --method {args.method} --scaling-order {args.sorder} --scaling-method {args.smethod} --log-level {args.log_level} --max_toa {args.max_toa} --max_tot {args.max_tot} --cluster {args.cluster}',
         f'python calculate_time_walk_correction.py --out-directory {args.etroc}/{run} --file {args.file} --time-cuts {args.time_cuts_file} --etroc-number {args.etroc} --method {args.method} --scaling-order {args.sorder} --scaling-method {args.smethod} --log-level {args.log_level} --max_toa {args.max_toa} --max_tot {args.max_tot} --cluster {args.cluster}',
         f'python analyse_time_resolution.py --out-directory {args.etroc}/{run} --file {args.file} --time-cuts {args.time_cuts_file} --etroc-number {args.etroc} --method {args.method} --scaling-order {args.sorder} --scaling-method {args.smethod} --log-level {args.log_level} --max_toa {args.max_toa} --max_tot {args.max_tot} --cluster {args.cluster}',
-        f'python analyse_time_resolution_vs_bias_voltage.py --out-directory {args.etroc}/{run} --file {args.file} --time-cuts {args.time_cuts_file} --etroc-number {args.etroc} --method {args.method} --scaling-order {args.sorder} --scaling-method {args.smethod} --log-level {args.log_level} --max_toa {args.max_toa} --max_tot {args.max_tot} --cluster {args.cluster}',
     ]
 
     commands_clustering = [
         f'python calculate_times_in_ns.py --out-directory {args.etroc}/{run} --file {args.file} --time-cuts {args.time_cuts_file} --etroc-number {args.etroc} --method {args.method} --scaling-order {args.sorder} --scaling-method {args.smethod} --log-level {args.log_level} --max_toa {args.max_toa} --max_tot {args.max_tot} --cluster {args.cluster}',
         f'python calculate_time_walk_correction.py --out-directory {args.etroc}/{run} --file {args.file} --time-cuts {args.time_cuts_file} --etroc-number {args.etroc} --method {args.method} --scaling-order {args.sorder} --scaling-method {args.smethod} --log-level {args.log_level} --max_toa {args.max_toa} --max_tot {args.max_tot} --cluster {args.cluster}',
         f'python analyse_time_resolution.py --out-directory {args.etroc}/{run} --file {args.file} --time-cuts {args.time_cuts_file} --etroc-number {args.etroc} --method {args.method} --scaling-order {args.sorder} --scaling-method {args.smethod} --log-level {args.log_level} --max_toa {args.max_toa} --max_tot {args.max_tot} --cluster {args.cluster}',
-        f'python analyse_time_resolution_vs_bias_voltage.py --out-directory {args.etroc}/{run} --file {args.file} --time-cuts {args.time_cuts_file} --etroc-number {args.etroc} --method {args.method} --scaling-order {args.sorder} --scaling-method {args.smethod} --log-level {args.log_level} --max_toa {args.max_toa} --max_tot {args.max_tot} --cluster {args.cluster}',
     ]
 
     if args.script == "clustering.py":
@@ -54,7 +43,7 @@ def run_analysis(run, index, args):
     elif args.time_cuts_file != "time_cuts.csv":
         commands = commands_cuts
     else:
-        print("No matching command found for the given conditions.")
+        print("You need to give me '--cluster number' or '--time-cuts time_cuts-hv.csv'.")
         exit()
 
     # Find the index of the matching script in the commands list (finds the second word/element)
@@ -66,6 +55,7 @@ def run_analysis(run, index, args):
             # Execute each command with the appropriate run and arguments
             this_command = f'{command} --out-directory {args.etroc}/{run} --file {args.file} --time-cuts {args.time_cuts_file} --etroc-number {args.etroc} --method {args.method} --scaling-order {args.sorder} --scaling-method {args.smethod} --log-level {args.log_level} --max_toa {args.max_toa} --max_tot {args.max_tot}'
             try:
+                # This is where it is happening
                 
                 process = subprocess.Popen(this_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 stdout, stderr = process.communicate()
@@ -75,7 +65,7 @@ def run_analysis(run, index, args):
                     print(f"Error occurred while running the command for {run}: {error_message}")
                 
                 print(f"Done ({index+1}/{22}): {command.split()[1]} on {run}")
-
+                
             except Exception as e:
                 print(f"Error occurred while running the command for {run}: {str(e)}")
     else:
@@ -89,18 +79,20 @@ def script_main(args):
     runs = [run for run, status in zip(inventory_df['TxtFile'], inventory_df['Status']) if status != '-']
     
     # Using Multiprocessing
-    pool = multiprocessing.Pool(processes=4)  # Set the number of processes to 6
+    pool = multiprocessing.Pool(processes=5)  # Set the number of processes to 6
     pool.starmap(run_analysis, [(run, index+1, args) for index, run in enumerate(runs)])
     pool.close()
     pool.join()
     
-    '''
-    #runs = [run for run in os.listdir(Path(args.etroc)) if os.path.isdir(os.path.join(Path(args.etroc), run))]
-    for i, run in enumerate(runs, start=1):
-        if os.path.isdir(os.path.join(args.etroc, run)):
-            print(f"\n{i}: Let's start with {run} now")
-            run_analysis(run)
-    '''
+    if args.script != "clustering.py":
+        # Analyse time resolution vs bias voltage
+        print("\nTime to plot Time Resolution vs Bias Voltage")
+        try:
+            subprocess.run(f'python analyse_time_resolution_vs_bias_voltage.py --time-cuts {args.time_cuts_file} --cluster {args.cluster}', shell=True)
+        except subprocess.CalledProcessError as e:
+            # Handle the case when the subprocess call returns a non-zero exit code
+            print(f"Failed with exit code {e.returncode}: {e.output}")
+            # Add your desired error handling logic here
 
 if __name__ == '__main__':
     import argparse

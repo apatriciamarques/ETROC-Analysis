@@ -49,6 +49,8 @@ We can choose to process each data file individually or all at once with a chose
 
 # General Processing
 
+For this, we assume there's an inventory with original data descriptions.
+
 ### Treat all runs with the same method
 
 1. **all.py**

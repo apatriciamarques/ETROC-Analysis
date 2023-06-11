@@ -1,6 +1,6 @@
 # ETROC Analysis
 
-Based on https://github.com/cbeiraod/ETROC-Analysis-Scripts.
+Based on [Cristóvão Beirão's work](https://github.com/cbeiraod/ETROC-Analysis-Scripts.git).
 
 There's the option to perform data selection either with cutting or clustering.
 

@@ -58,7 +58,7 @@ def clustering_task(
                 # SCALE VARIABLES OF INTEREST CC, TOT, TOA
                 if args.sorder == "before_restructure":
                     factor_cc = 1
-                    factor_tot = 1
+                    factor_tot = 5
                     factor_toa = 1
                     cc = f"calibration_code"
                     tot = f"time_over_threshold"
@@ -216,7 +216,7 @@ def clustering_task(
 
                 if method == "KMEANS":
 
-                    k = 18 # Number of clusters
+                    k = 25 # Number of clusters
                     max_iter = 500 # Max nr of iterations
                     n_init_value = 50 # Set the desired value for n_init
                     # 10: 2/3 clusters along the S
@@ -269,6 +269,13 @@ def clustering_task(
                             16 : 'silver',
                             17 : 'chocolate',
                             18 : 'moccasin',
+                            19 : 'turquoise',
+                            20 : 'azure',
+                            21 : 'hotpink',
+                            22 : 'teal',
+                            23 : 'lawngreen',
+                            24 : 'crimson',
+                            25 : 'tomato',
                    }
 
                 # ITERATE OVER THE CLUSTERS TO GET THE SAME COLOR
